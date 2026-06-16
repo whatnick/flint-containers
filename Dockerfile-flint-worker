@@ -104,11 +104,15 @@ COPY --from=calibrate-build /opt/calibrate-install/ /
 USER ${NB_UID}
 
 # Radio + Dask Python stack from conda-forge (shares the notebook's Python).
+# dask-gateway is pinned to match the EASI Dask Gateway server (2025.4.0); it is
+# the sanctioned multi-tenant path for launching Dask clusters from notebooks
+# (the operator-based KubeCluster is also supported where RBAC permits).
 RUN mamba install --yes -c conda-forge \
         "python-casacore" \
         "dask" \
         "distributed" \
         "dask-kubernetes" \
+        "dask-gateway=2025.4.0" \
         "bokeh" \
         "dask-labextension" && \
     mamba clean --all --force-pkgs-dirs --yes && \
