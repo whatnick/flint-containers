@@ -45,7 +45,16 @@ RUN docker-apt-install \
 # calibrate sources are vendored as a git submodule of this repo.
 COPY ./calibrate /calibrate
 WORKDIR /calibrate
-RUN mkdir -p build && cd build && \
+# calibrate's CMakeLists hardcodes `set(CMAKE_CXX_STANDARD 11)`, but KERN-10 ships
+# casacore 3.7.x whose headers use relaxed constexpr and require C++14+ (a plain
+# set() overrides any -DCMAKE_CXX_STANDARD, so patch the file). Also drop the
+# hardcoded `-march=native` so the published binary is portable across CPUs
+# rather than tuned to the CI build host.
+RUN sed -i \
+        -e 's/set(CMAKE_CXX_STANDARD 11)/set(CMAKE_CXX_STANDARD 17)/' \
+        -e 's/ -march=native//' \
+        CMakeLists.txt && \
+    mkdir -p build && cd build && \
     cmake ../ && \
     make -j"$(nproc)" && \
     make install DESTDIR=/opt/calibrate-install
@@ -53,8 +62,10 @@ RUN mkdir -p build && cd build && \
 ####################################################
 # Stage 2: runtime on the Jupyter Docker Stacks base #
 ####################################################
-# Pinned date tag for reproducibility (Ubuntu 24.04 / noble, Python 3.13).
-FROM quay.io/jupyter/scipy-notebook:2026-05-11
+# Pinned date tag for reproducibility. Ubuntu 24.04 (noble) -> matches KERN-10.
+# Python 3.12: askap-flint's `crystalball` dependency requires Python <3.13, so
+# we deliberately avoid the newer Python 3.13 docker-stacks tags.
+FROM quay.io/jupyter/scipy-notebook:2025-08-11
 
 LABEL org.opencontainers.image.title="flint-worker" \
       org.opencontainers.image.description="askap-flint + radio tools (wsclean/aoflagger/calibrate) + Dask on a Jupyter Docker Stacks base, for JupyterHub and dask-kubernetes." \
@@ -62,7 +73,11 @@ LABEL org.opencontainers.image.title="flint-worker" \
 
 # --- system radio tools from KERN-10 (needs root) ---------------------------
 USER root
-RUN apt-get update && \
+# Override HOME for this layer so `add-apt-repository` writes its launchpadlib
+# cache under /root rather than creating root-owned files in /home/jovyan (which
+# would later break `fix-permissions` run as the notebook user).
+RUN export HOME=/root && \
+    apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository -y ppa:kernsuite/kern-10 && \
     apt-add-repository -y multiverse && \
@@ -79,7 +94,7 @@ RUN apt-get update && \
         libboost-date-time-dev \
         libboost-system-dev \
         libboost-thread-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/* /root/.launchpadlib
 
 # Bring in the calibrate binaries built in stage 1 (links against KERN-10 libs
 # installed above).
@@ -100,11 +115,12 @@ RUN mamba install --yes -c conda-forge \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# FLINT itself plus the pip-only source-finding / peeling tools.
+# FLINT itself plus the pip-only peeling tool. `askap-flint` already pins and
+# installs AegeanTools (source finding) and crystalball, so we do not install
+# Aegean separately (that would fight the pinned version).
 RUN pip install --no-cache-dir \
         "askap-flint" \
         "prefect-dask" \
-        "git+https://github.com/PaulHancock/Aegean.git" \
         "git+https://gitlab.com/Sunmish/potato.git" && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
