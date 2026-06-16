@@ -1,31 +1,33 @@
 # syntax=docker/dockerfile:1
 #
-# flint-worker: a single, consolidated image that bundles the FLINT pipeline
-# (askap-flint) together with the radio-astronomy tools it shells out to, plus a
-# Dask + JupyterLab runtime.
+# flint-worker: a single, consolidated image bundling the FLINT pipeline
+# (askap-flint) with the radio-astronomy tools it shells out to, on top of a
+# Jupyter Docker Stacks base (https://github.com/jupyter/docker-stacks).
 #
-# It is designed to be used in TWO roles with an IDENTICAL environment (a hard
-# requirement for Dask: scheduler, workers and the client/notebook must share the
-# same Python and library versions):
+# It is meant to be used in TWO roles with an IDENTICAL environment (a hard Dask
+# requirement: scheduler, workers and the client/notebook must match):
 #
 #   1. JupyterHub singleuser image (Zero-to-JupyterHub `singleuser.image`).
 #   2. Dask worker/scheduler image for the dask-kubernetes operator
 #      (`KubeCluster(image=...)`).
 #
-# Both Z2JH and the dask-kubernetes operator override the container command, so we
-# only provide a sensible default CMD for standalone use.
+# Basing on docker-stacks gives us the `jovyan` user (uid 1000), conda/mamba, a
+# pre-wired JupyterLab/JupyterHub-singleuser stack, the `start-notebook` scripts
+# expected by Z2JH, and `tini` as the entrypoint. We therefore deliberately do
+# NOT override ENTRYPOINT/CMD -- Z2JH and the dask operator each supply their own.
 #
-# Tools included:
-#   - wsclean, aoflagger, casacore tools  (from the KERN-9 apt repo)
-#   - calibrate (Offringa/Lenc) built from the ./calibrate submodule
-#   - aegean (source finding) and potato (peeling) via pip
-#   - askap-flint, dask[distributed], dask-kubernetes, prefect-dask
-#   - jupyterlab / jupyterhub / notebook + dask-labextension
+# Tool sourcing rationale:
+#   - wsclean, aoflagger: not on conda-forge, installed from the KERN apt repo.
+#     docker-stacks is Ubuntu 24.04 (noble), which matches KERN-10.
+#   - calibrate (Offringa/Lenc): built from the ./calibrate submodule against the
+#     same KERN-10 system libraries (multi-stage), then copied in.
+#   - python-casacore / dask / flint / aegean / potato: installed into the conda
+#     environment so they share the notebook's Python.
 
-############################
-# Stage 1: build calibrate #
-############################
-FROM kernsuite/base:9 AS calibrate-build
+############################################
+# Stage 1: build calibrate against KERN-10 #
+############################################
+FROM kernsuite/base:10 AS calibrate-build
 
 RUN docker-apt-install \
     build-essential \
@@ -40,7 +42,7 @@ RUN docker-apt-install \
     libboost-system-dev \
     libboost-thread-dev
 
-# The calibrate sources are vendored as a git submodule of this repo.
+# calibrate sources are vendored as a git submodule of this repo.
 COPY ./calibrate /calibrate
 WORKDIR /calibrate
 RUN mkdir -p build && cd build && \
@@ -48,76 +50,68 @@ RUN mkdir -p build && cd build && \
     make -j"$(nproc)" && \
     make install DESTDIR=/opt/calibrate-install
 
-#####################
-# Stage 2: runtime  #
-#####################
-FROM kernsuite/base:9
+####################################################
+# Stage 2: runtime on the Jupyter Docker Stacks base #
+####################################################
+# Pinned date tag for reproducibility (Ubuntu 24.04 / noble, Python 3.13).
+FROM quay.io/jupyter/scipy-notebook:2026-05-11
 
 LABEL org.opencontainers.image.title="flint-worker" \
-      org.opencontainers.image.description="Consolidated FLINT pipeline + radio tools + Dask/Jupyter runtime for JupyterHub and dask-kubernetes." \
+      org.opencontainers.image.description="askap-flint + radio tools (wsclean/aoflagger/calibrate) + Dask on a Jupyter Docker Stacks base, for JupyterHub and dask-kubernetes." \
       org.opencontainers.image.source="https://github.com/whatnick/flint-containers"
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    NB_USER=jovyan \
-    NB_UID=1000 \
-    NB_GID=1000 \
-    HOME=/home/jovyan \
-    PATH="/opt/venv/bin:${PATH}" \
-    VIRTUAL_ENV=/opt/venv
-
-# Runtime radio tools from the KERN-9 repo + a Python toolchain.
-RUN docker-apt-install \
+# --- system radio tools from KERN-10 (needs root) ---------------------------
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository -y ppa:kernsuite/kern-10 && \
+    apt-add-repository -y multiverse && \
+    apt-add-repository -y restricted && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
         wsclean \
         aoflagger \
         casacore-dev \
         casacore-tools \
-        python3 \
-        python3-venv \
-        python-is-python3 \
-        git \
-        curl \
-        rsync \
-        ca-certificates \
-        tini && \
+        libcfitsio-dev \
+        libgsl-dev \
+        libboost-filesystem-dev \
+        libboost-date-time-dev \
+        libboost-system-dev \
+        libboost-thread-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Bring in the calibrate binaries/libraries built in stage 1.
+# Bring in the calibrate binaries built in stage 1 (links against KERN-10 libs
+# installed above).
 COPY --from=calibrate-build /opt/calibrate-install/ /
 
-# Install uv (fast resolver) and use it to populate a self-contained virtualenv so
-# the Python environment is reproducible and easy to mount/inspect.
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH="/root/.local/bin:${PATH}"
-
-RUN uv venv --system-site-packages "${VIRTUAL_ENV}" && \
-    uv pip install --python "${VIRTUAL_ENV}/bin/python" --no-cache \
-        "askap-flint" \
-        "dask[distributed]" \
-        "dask-kubernetes" \
-        "prefect-dask" \
-        "bokeh" \
-        "jupyterlab" \
-        "jupyterhub" \
-        "notebook" \
-        "dask-labextension" \
-        "git+https://github.com/PaulHancock/Aegean.git" \
-        "git+https://gitlab.com/Sunmish/potato.git"
-
-# Non-root user expected by Zero-to-JupyterHub and friendlier for dask workers.
-RUN groupadd -g "${NB_GID}" "${NB_USER}" && \
-    useradd -m -s /bin/bash -u "${NB_UID}" -g "${NB_GID}" "${NB_USER}" && \
-    mkdir -p "${HOME}/work" && \
-    chown -R "${NB_UID}:${NB_GID}" "${HOME}" "${VIRTUAL_ENV}"
-
+# --- Python environment (as the unprivileged notebook user) ------------------
 USER ${NB_UID}
-WORKDIR ${HOME}
 
-# Quick sanity check that the key entrypoints resolve at build time.
-RUN python -c "import flint, dask, dask_kubernetes, distributed" && \
-    which wsclean aoflagger calibrate dask jupyterhub-singleuser
+# Radio + Dask Python stack from conda-forge (shares the notebook's Python).
+RUN mamba install --yes -c conda-forge \
+        "python-casacore" \
+        "dask" \
+        "distributed" \
+        "dask-kubernetes" \
+        "bokeh" \
+        "dask-labextension" && \
+    mamba clean --all --force-pkgs-dirs --yes && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
-# tini reaps zombies for the long-running notebook/worker processes.
-ENTRYPOINT ["tini", "-g", "--"]
-# Default for standalone use; Z2JH and the dask operator override this.
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--no-browser"]
+# FLINT itself plus the pip-only source-finding / peeling tools.
+RUN pip install --no-cache-dir \
+        "askap-flint" \
+        "prefect-dask" \
+        "git+https://github.com/PaulHancock/Aegean.git" \
+        "git+https://gitlab.com/Sunmish/potato.git" && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Sanity check that the key entrypoints resolve at build time.
+RUN python -c "import flint, dask, dask_kubernetes, distributed, casacore" && \
+    which wsclean aoflagger calibrate
+
+# Inherit docker-stacks ENTRYPOINT (tini) + CMD (start-notebook). Z2JH and the
+# dask-kubernetes operator override the command as needed.

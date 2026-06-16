@@ -45,6 +45,14 @@ singularity pull docker://ghcr.io/flint-crew/{application}:{tag}
 radio tools it drives (`wsclean`, `aoflagger`, `casacore`, `calibrate`, `aegean`,
 `potato`) plus a Dask + JupyterLab runtime.
 
+It is built on a [Jupyter Docker Stacks](https://github.com/jupyter/docker-stacks)
+base (`scipy-notebook`, Ubuntu 24.04 / noble), so it inherits the `jovyan` user,
+conda/mamba, JupyterLab, the Zero-to-JupyterHub start scripts and `tini`.
+`wsclean`/`aoflagger` come from the matching [KERN-10](https://kernsuite.info/)
+apt repo, `calibrate` is built from the submodule, and the Python stack
+(flint, dask, dask-kubernetes, python-casacore) is installed into the conda
+environment.
+
 It is built and published by `.github/workflows/flint-worker.yml` to:
 
 ```
