@@ -1,0 +1,26 @@
+# Zero-to-JupyterHub values snippet for offering the flint-worker image as a
+# notebook profile. Drop this into the Helm values for the JupyterHub release.
+#
+# The SAME image is used by the dask-kubernetes operator workers (see
+# examples/dask_kubecluster_example.py) so the notebook and Dask workers share an
+# identical Python/library environment.
+
+singleuser:
+  profileList:
+    - display_name: "FLINT (radio imaging + Dask)"
+      description: "askap-flint + wsclean/calibrate/aoflagger + Dask on Kubernetes"
+      kubespawner_override:
+        image: ghcr.io/whatnick/flint-worker:latest
+        cpu_guarantee: 2
+        cpu_limit: 4
+        mem_guarantee: "8G"
+        mem_limit: "16G"
+        # Mount the shared scratch PVC (EFS, ReadWriteMany) that the Dask worker
+        # pods also mount, so Measurement Sets are visible everywhere.
+        volumes:
+          - name: scratch
+            persistentVolumeClaim:
+              claimName: flint-scratch
+        volume_mounts:
+          - name: scratch
+            mountPath: /home/jovyan/work

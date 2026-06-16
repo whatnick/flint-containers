@@ -37,3 +37,31 @@ singularity pull docker://ghcr.io/flint-crew/{application}:{tag}
 - [Aegean](https://github.com/PaulHancock/Aegean): AegeanTools source finding package developed by Paul Hancock.
 - [PotatoPeel](https://gitlab.com/Sunmish/potato): Peel out that annoying, terrible object developed by Stefan Duchesne.
 - [CASA](https://casa.nrao.edu/): The Common Astronomy Software Applications package, developed by NRAO.
+
+## Cloud-native: the `flint-worker` image
+
+`Dockerfile-flint-worker` builds a single, consolidated image that bundles the
+[`askap-flint`](https://pypi.org/project/askap-flint/) pipeline together with the
+radio tools it drives (`wsclean`, `aoflagger`, `casacore`, `calibrate`, `aegean`,
+`potato`) plus a Dask + JupyterLab runtime.
+
+It is built and published by `.github/workflows/flint-worker.yml` to:
+
+```
+ghcr.io/<owner>/flint-worker:<tag>
+```
+
+The image is designed to be used in two roles with an **identical** environment,
+which Dask requires (scheduler, workers and the client/notebook must match):
+
+1. **JupyterHub singleuser image** — set it as the Zero-to-JupyterHub
+   `singleuser.image` (or a `profileList` entry).
+2. **Dask worker/scheduler image** — pass it to the
+   [dask-kubernetes operator](https://kubernetes.dask.org/) via
+   `KubeCluster(image=...)`.
+
+Running the radio tools directly on the Dask workers (rather than via
+Singularity/Apptainer, as on HPC) removes the container-in-container requirement
+and lets the pipeline run interactively on a Kubernetes platform such as
+[EASI Hub](https://research.csiro.au/easi/). See `examples/` for a
+`KubeCluster` notebook snippet and a JupyterHub values snippet.
