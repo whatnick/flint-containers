@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" font-family="Arial,sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+  </defs>
+  <!-- Background -->
+  <rect x="10" y="10" width="880" height="660" rx="8" fill="#f0f4f8" stroke="#94a3b8" stroke-width="2"/>
+  <text x="450" y="35" text-anchor="middle" font-size="16" font-weight="bold">EASI Kubernetes Cluster — FLINT Orchestration</text>
+  <!-- JupyterHub -->
+  <rect x="300" y="50" width="300" height="60" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="450" y="75" text-anchor="middle" font-weight="bold">JupyterHub (Z2JH Helm)</text>
+  <text x="450" y="95" text-anchor="middle" font-size="11" fill="#555">Cognito OIDC · profileList → flint-worker</text>
+  <!-- Arrow Hub → Notebook -->
+  <line x1="450" y1="110" x2="450" y2="140" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="465" y="130" font-size="10" fill="#666">spawns</text>
+  <!-- Notebook Pod -->
+  <rect x="180" y="145" width="540" height="100" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="450" y="167" text-anchor="middle" font-weight="bold">Notebook Pod (flint-worker image)</text>
+  <rect x="200" y="175" width="150" height="55" rx="4" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="275" y="195" text-anchor="middle" font-size="11" font-weight="bold">Option A</text>
+  <text x="275" y="210" text-anchor="middle" font-size="10">KubeCluster</text>
+  <text x="275" y="223" text-anchor="middle" font-size="10">(dask-kubernetes)</text>
+  <rect x="450" y="175" width="150" height="55" rx="4" fill="#fef3c7" stroke="#d97706"/>
+  <text x="525" y="195" text-anchor="middle" font-size="11" font-weight="bold">Option B</text>
+  <text x="525" y="210" text-anchor="middle" font-size="10">GatewayCluster</text>
+  <text x="525" y="223" text-anchor="middle" font-size="10">(dask-gateway)</text>
+  <!-- Arrows to Dask Operator -->
+  <line x1="275" y1="245" x2="380" y2="280" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="525" y1="245" x2="520" y2="280" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Dask Operator -->
+  <rect x="280" y="285" width="340" height="50" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="450" y="307" text-anchor="middle" font-weight="bold">Dask Kubernetes Operator / Gateway</text>
+  <text x="450" y="323" text-anchor="middle" font-size="10" fill="#555">Creates DaskCluster CR → scheduler + worker pods</text>
+  <!-- Arrow to Workers -->
+  <line x1="450" y1="335" x2="450" y2="370" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="465" y="358" font-size="10" fill="#666">creates pods</text>
+  <!-- Worker Pods -->
+  <rect x="80" y="375" width="740" height="150" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="450" y="397" text-anchor="middle" font-weight="bold">Dask Worker Pods (SAME flint-worker image)</text>
+  <!-- Binaries box -->
+  <rect x="100" y="405" width="340" height="105" rx="4" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="270" y="423" text-anchor="middle" font-size="11" font-weight="bold">System Binaries ($PATH)</text>
+  <text x="270" y="440" text-anchor="middle" font-size="10">wsclean · aoflagger · calibrate</text>
+  <text x="270" y="455" text-anchor="middle" font-size="10">addmodel · applysolutions</text>
+  <text x="270" y="470" text-anchor="middle" font-size="10">casacore-tools · BANE · aegean</text>
+  <text x="270" y="490" text-anchor="middle" font-size="10" fill="#666">flint tasks → subprocess.run(["wsclean", ...])</text>
+  <text x="270" y="503" text-anchor="middle" font-size="10" fill="#666">No Singularity needed</text>
+  <!-- Python box -->
+  <rect x="460" y="405" width="340" height="105" rx="4" fill="#f0fdf4" stroke="#16a34a"/>
+  <text x="630" y="423" text-anchor="middle" font-size="11" font-weight="bold">Python Environment (conda)</text>
+  <text x="630" y="440" text-anchor="middle" font-size="10">askap-flint · prefect-dask</text>
+  <text x="630" y="455" text-anchor="middle" font-size="10">python-casacore · dask · distributed</text>
+  <text x="630" y="470" text-anchor="middle" font-size="10">dask-kubernetes · dask-gateway</text>
+  <text x="630" y="485" text-anchor="middle" font-size="10">AegeanTools · crystalball · potato</text>
+  <text x="630" y="503" text-anchor="middle" font-size="10" fill="#666">numpy · scipy · astropy · matplotlib</text>
+  <!-- Arrow to EFS -->
+  <line x1="450" y1="525" x2="450" y2="560" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- EFS -->
+  <rect x="200" y="565" width="500" height="50" rx="6" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="450" y="587" text-anchor="middle" font-weight="bold">Shared Storage (EFS PVC: flint-scratch, ReadWriteMany)</text>
+  <text x="450" y="605" text-anchor="middle" font-size="10" fill="#555">Measurement Sets · images · catalogues visible to all pods</text>
+  <!-- Key -->
+  <rect x="30" y="630" width="840" height="30" rx="4" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="450" y="650" text-anchor="middle" font-size="11" fill="#475569">Dask requires identical image across notebook + scheduler + workers (homogeneity constraint)</text>
+</svg>

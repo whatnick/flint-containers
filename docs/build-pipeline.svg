@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" font-family="Arial,sans-serif" font-size="12">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+  </defs>
+  <rect x="10" y="10" width="880" height="680" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <text x="450" y="35" text-anchor="middle" font-size="16" font-weight="bold">Build &amp; Publish Pipeline</text>
+  <!-- GitHub Actions -->
+  <rect x="30" y="50" width="840" height="380" rx="6" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="450" y="72" text-anchor="middle" font-size="14" font-weight="bold">GitHub Actions CI/CD</text>
+  <text x="450" y="90" text-anchor="middle" font-size="11" fill="#666">Triggers: push to main/feature/** · release · workflow_dispatch</text>
+  <!-- flint-worker workflow -->
+  <rect x="50" y="105" width="400" height="310" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="250" y="125" text-anchor="middle" font-weight="bold">flint-worker.yml</text>
+  <text x="250" y="142" text-anchor="middle" font-size="10" fill="#555">(push main/feature, release)</text>
+  <!-- Steps -->
+  <rect x="70" y="155" width="360" height="30" rx="4" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="250" y="174" text-anchor="middle" font-size="11">1. Checkout (submodules: recursive → calibrate)</text>
+  <rect x="70" y="195" width="360" height="30" rx="4" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="250" y="214" text-anchor="middle" font-size="11">2. Login to GHCR</text>
+  <rect x="70" y="235" width="360" height="30" rx="4" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="250" y="254" text-anchor="middle" font-size="11">3. Metadata → tags: branch, sha, semver, latest</text>
+  <!-- Multi-stage build box -->
+  <rect x="70" y="275" width="360" height="120" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="250" y="293" text-anchor="middle" font-size="11" font-weight="bold">4. Multi-stage Docker Build</text>
+  <rect x="85" y="300" width="330" height="35" rx="3" fill="#dcfce7" stroke="#86efac"/>
+  <text x="250" y="315" text-anchor="middle" font-size="10" font-weight="bold">Stage 1: kernsuite/base:10</text>
+  <text x="250" y="330" text-anchor="middle" font-size="10">cmake build calibrate → /opt/install</text>
+  <rect x="85" y="340" width="330" height="48" rx="3" fill="#dcfce7" stroke="#86efac"/>
+  <text x="250" y="354" text-anchor="middle" font-size="10" font-weight="bold">Stage 2: jupyter/scipy-notebook</text>
+  <text x="250" y="367" text-anchor="middle" font-size="10">+ KERN-10 apt (wsclean, aoflagger, casacore)</text>
+  <text x="250" y="380" text-anchor="middle" font-size="10">+ mamba (dask, casacore) + pip (flint, potato)</text>
+  <rect x="70" y="400" width="360" height="25" rx="4" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="250" y="416" text-anchor="middle" font-size="11">5. Push → ghcr.io/&lt;owner&gt;/flint-worker:&lt;tags&gt;</text>
+  <!-- docker-publish workflow -->
+  <rect x="470" y="105" width="380" height="310" rx="6" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="660" y="125" text-anchor="middle" font-weight="bold">docker-publish.yml</text>
+  <text x="660" y="142" text-anchor="middle" font-size="10" fill="#555">(release only — legacy per-tool images)</text>
+  <!-- Matrix -->
+  <rect x="490" y="155" width="340" height="30" rx="4" fill="#fef9c3" stroke="#fde047"/>
+  <text x="660" y="174" text-anchor="middle" font-size="11">Strategy matrix (7 images in parallel)</text>
+  <!-- Per-tool boxes -->
+  <rect x="490" y="195" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="542" y="213" text-anchor="middle" font-size="10" font-weight="bold">calibrate</text>
+  <text x="542" y="228" text-anchor="middle" font-size="9" fill="#666">ubuntu:latest</text>
+  <rect x="605" y="195" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="657" y="213" text-anchor="middle" font-size="10" font-weight="bold">wsclean</text>
+  <text x="657" y="228" text-anchor="middle" font-size="9" fill="#666">kernsuite/base:9</text>
+  <rect x="720" y="195" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="772" y="213" text-anchor="middle" font-size="10" font-weight="bold">aoflagger</text>
+  <text x="772" y="228" text-anchor="middle" font-size="9" fill="#666">kernsuite/base:9</text>
+  <rect x="490" y="250" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="542" y="268" text-anchor="middle" font-size="10" font-weight="bold">aegean</text>
+  <text x="542" y="283" text-anchor="middle" font-size="9" fill="#666">uv:python3.12</text>
+  <rect x="605" y="250" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="657" y="268" text-anchor="middle" font-size="10" font-weight="bold">potato</text>
+  <text x="657" y="283" text-anchor="middle" font-size="9" fill="#666">kernsuite/base:9</text>
+  <rect x="720" y="250" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="772" y="268" text-anchor="middle" font-size="10" font-weight="bold">casa</text>
+  <text x="772" y="283" text-anchor="middle" font-size="9" fill="#666">custom</text>
+  <rect x="605" y="305" width="105" height="45" rx="4" fill="#fff" stroke="#ca8a04"/>
+  <text x="657" y="323" text-anchor="middle" font-size="10" font-weight="bold">askapsoft</text>
+  <text x="657" y="338" text-anchor="middle" font-size="9" fill="#666">placeholder</text>
+  <!-- Output -->
+  <rect x="490" y="370" width="340" height="40" rx="4" fill="#fef9c3" stroke="#fde047"/>
+  <text x="660" y="387" text-anchor="middle" font-size="11">Each → Dockerfile-{name}</text>
+  <text x="660" y="402" text-anchor="middle" font-size="11">→ ghcr.io/&lt;owner&gt;/{name}:&lt;tag&gt;</text>
+  <!-- Arrow to deployment -->
+  <line x1="250" y1="430" x2="250" y2="470" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="660" y1="430" x2="660" y2="470" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Deployment targets -->
+  <rect x="50" y="475" width="400" height="90" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="250" y="498" text-anchor="middle" font-weight="bold">Kubernetes Deployment (FluxCD)</text>
+  <text x="250" y="518" text-anchor="middle" font-size="11">singleuser.image: ghcr.io/.../flint-worker:latest</text>
+  <text x="250" y="536" text-anchor="middle" font-size="11">KubeCluster(image="ghcr.io/.../flint-worker:latest")</text>
+  <text x="250" y="554" text-anchor="middle" font-size="10" fill="#666">Same image for notebook + scheduler + workers</text>
+  <rect x="470" y="475" width="380" height="90" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="660" y="498" text-anchor="middle" font-weight="bold">HPC / Singularity (legacy)</text>
+  <text x="660" y="518" text-anchor="middle" font-size="11">singularity pull docker://ghcr.io/.../wsclean:tag</text>
+  <text x="660" y="536" text-anchor="middle" font-size="11">Used by flint on Pawsey/Setonix via</text>
+  <text x="660" y="554" text-anchor="middle" font-size="11">SLURMCluster + singularity exec</text>
+  <!-- Legend -->
+  <rect x="50" y="590" width="800" height="80" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="450" y="610" text-anchor="middle" font-size="12" font-weight="bold">Trigger Summary</text>
+  <rect x="80" y="620" width="12" height="12" fill="#3b82f6"/><text x="100" y="631" font-size="11">flint-worker: push main/feature/**, release, manual</text>
+  <rect x="80" y="640" width="12" height="12" fill="#ca8a04"/><text x="100" y="651" font-size="11">docker-publish (per-tool): release only, manual</text>
+  <text x="450" y="660" text-anchor="middle" font-size="10" fill="#666">Path filter: Dockerfile-flint-worker, calibrate/**, .github/workflows/flint-worker.yml</text>
+</svg>
