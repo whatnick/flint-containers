@@ -123,14 +123,14 @@ RUN mamba install --yes -c conda-forge \
 # installs AegeanTools (source finding) and crystalball, so we do not install
 # Aegean separately (that would fight the pinned version).
 RUN pip install --no-cache-dir \
-        "askap-flint" \
+        "askap-flint[casa]" \
         "prefect-dask" \
         "git+https://gitlab.com/Sunmish/potato.git" && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
 # Sanity check that the key entrypoints resolve at build time.
-RUN python -c "import flint, dask, dask_kubernetes, distributed, casacore" && \
+RUN python -c "import flint, dask, dask_kubernetes, distributed, casacore, fixms" && \
     which wsclean aoflagger calibrate
 
 # Inherit docker-stacks ENTRYPOINT (tini) + CMD (start-notebook). Z2JH and the
